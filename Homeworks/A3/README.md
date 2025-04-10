@@ -14,10 +14,13 @@ After extracting the ZIP, you will find the following structure:
 
 ```
 A3_210052_210601_210661/
-│   ├── server.cpp      # Provided server code
-│   ├── client.cpp      # Implemented client
-│   ├── Makefile        # To build both server and client
-│   └── README.md       # This README
+│   ├── server.cpp              # Provided server code
+│   ├── server                  # Executable server 
+│   ├── client.cpp              # Implemented client code
+│   ├── client                  # Executable client
+│   ├── Makefile                # To build both server and client
+│   ├── client-server-flow.jpg  # Diagram of the three way handshake
+│   └── README.md               # This README
 ```
 
 ---
@@ -110,12 +113,18 @@ This assignment demonstrates a simplified TCP 3-way handshake using **raw socket
    - Acknowledgment: 201  
    - Flags: SYN=1, ACK=1
 
+- Why 201? Because it is acknowledging that it received sequence 200 from the client. In TCP, ACK means **"I received everything up to this number minus one."**
+
 3. **ACK (Client → Server)**  
    - Sequence Number: 600  
    - Acknowledgment: 401  
    - Flags: ACK=1
 
+- Why 401? Because the server’s SYN had a sequence number of 400, and the client is acknowledging receipt of that with 401.
+
 Each packet is built manually using C++ structures for IP and TCP headers.
+
+![3-way Handshake](client-server-flow.jpg)
 
 ---
 
@@ -147,8 +156,19 @@ Each packet is built manually using C++ structures for IP and TCP headers.
 
 - This implementation is hardcoded for `127.0.0.1` (localhost) and **port 12345** as defined in `server.cpp`.
 - TCP checksum is left as zero; the OS kernel usually fills this in when sending via raw sockets.
-- Only a subset of TCP/IP fields are set for simplicity.
 - This code **does not use the kernel TCP stack** for connection state. All handshake logic is done manually.
+- The values (200, 201, 400, 401, 600) are hardcoded for simplicity in the assignment but reflect real TCP behavior where:
+  - ACK = SEQ of previous packet + 1 (if SYN or data present)
+
+---
+
+## ✅ Summary
+
+| Step | Sender | Seq | Ack | Why? |
+|------|--------|-----|-----|------|
+| 1    | Client → Server | 200 | —   | Initial SYN |
+| 2    | Server → Client | 400 | 201 | ACKs 200 + 1 |
+| 3    | Client → Server | 600 | 401 | ACKs 400 + 1 |
 
 ---
 
