@@ -6,10 +6,9 @@
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <cstdint> 
 
-// Define server port as per assignment
 #define SERVER_PORT 12345
-// Define client's arbitrary source port
 #define CLIENT_PORT 54321
 
 // Size of the packet: IP header + TCP header
@@ -95,43 +94,31 @@ void send_syn(int sock, struct sockaddr_in &dest_addr)
  *   - A sequence number of 400.
  * Returns: true if a valid SYN-ACK is received.
  */
-bool receive_syn_ack(int sock, int expected_ack_num, int expected_seq_num)
-{
+
+bool receive_syn_ack(int sock, uint32_t expected_ack_num, uint32_t expected_seq_num) {
     char buffer[65536];
     struct sockaddr_in source_addr;
     socklen_t addr_len = sizeof(source_addr);
 
-    while (true)
-    {
-        // Receive packets on the raw socket
+    while (true) {
         int data_size = recvfrom(sock, buffer, sizeof(buffer), 0,
                                  (struct sockaddr *)&source_addr, &addr_len);
-        if (data_size < 0)
-        {
+        if (data_size < 0) {
             perror("recvfrom() failed");
             continue;
         }
 
-        // Parse IP and TCP headers from the received packet
         struct iphdr *ip = (struct iphdr *)buffer;
         unsigned int ip_header_len = ip->ihl * 4;
         struct tcphdr *tcp = (struct tcphdr *)(buffer + ip_header_len);
 
-        // Check if the packet is destined to our CLIENT_PORT and comes from SERVER_PORT
-        if (ntohs(tcp->dest) != CLIENT_PORT)
-            continue;
-        if (ntohs(tcp->source) != SERVER_PORT)
-            continue;
+        if (ntohs(tcp->dest) != CLIENT_PORT) continue;
+        if (ntohs(tcp->source) != SERVER_PORT) continue;
 
-        // Check if the packet has the expected SYN-ACK flags
-        if (tcp->syn == 1 && tcp->ack == 1)
-        {
-            // For debugging, print received TCP flags
+        if (tcp->syn == 1 && tcp->ack == 1) {
             print_tcp_flags(tcp);
-            // Validate ack number and sequence number based on assignment spec
             if (ntohl(tcp->ack_seq) == expected_ack_num &&
-                ntohl(tcp->seq) == expected_seq_num)
-            {
+                ntohl(tcp->seq) == expected_seq_num) {
                 std::cout << "[+] RECEIVED SYN-ACK (SEQ=400, ACK=201)" << std::endl;
                 return true;
             }
@@ -183,7 +170,7 @@ void send_final_ack(int sock, struct sockaddr_in &dest_addr)
     tcp->rst = 0;
     tcp->psh = 0;
     tcp->window = htons(8192);
-    tcp->check = 0; // Checksum set to zero (kernel may compute it)
+    tcp->check = 0; 
 
     // Send the final ACK packet
     if (sendto(sock, packet, PACKET_SIZE, 0,
@@ -225,19 +212,18 @@ int main()
     dest_addr.sin_port = htons(SERVER_PORT);
     dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    // --- Step 1: Send SYN Packet ---
+    // Step 1: Send SYN Packet 
     send_syn(sock, dest_addr);
 
-    // --- Step 2: Wait and process SYN-ACK from server ---
+    // Step 2: Wait and process SYN-ACK from server
     // Expected: ACK number 201 (for our SYN with 200) and SEQ number 400.
-    if (!receive_syn_ack(sock, 201, 400))
-    {
+    if (!receive_syn_ack(sock, 201u, 400u)) {
         std::cerr << "[-] Failed to receive correct SYN-ACK" << std::endl;
         close(sock);
         exit(EXIT_FAILURE);
     }
 
-    // --- Step 3: Send final ACK ---
+    // Step 3: Send final ACK
     send_final_ack(sock, dest_addr);
 
     std::cout << "[+] Handshake complete." << std::endl;

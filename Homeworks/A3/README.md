@@ -2,7 +2,7 @@
 
 ## Course: CS425: Computer Networks  
 
-**Instructor**: Adithya Vadapalli  
+**Instructor**: Prof. Adithya Vadapalli  
 
 ## 📁 Contents of Submission
 
